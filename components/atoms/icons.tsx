@@ -120,3 +120,16 @@ export function ClockIcon({ className = base }: IconProps) {
     </svg>
   );
 }
+
+export function PdfIcon({ className = base }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path
+        d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M14 3v5h5M8 13h3M8 17h8M8 9h2" strokeLinecap="round" />
+    </svg>
+  );
+}

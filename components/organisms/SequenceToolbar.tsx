@@ -10,6 +10,7 @@ import {
   UploadIcon,
   PlayIcon,
   PlusIcon,
+  PdfIcon,
 } from "@/components/atoms/icons";
 import { listConfigs } from "@/lib/configs";
 import type { ConfigId } from "@/lib/types";
@@ -22,6 +23,7 @@ export function SequenceToolbar({
   onAddRow,
   onPlay,
   onExport,
+  onExportPdf,
   onImportFile,
 }: {
   title: string;
@@ -31,6 +33,7 @@ export function SequenceToolbar({
   onAddRow: () => void;
   onPlay: () => void;
   onExport: () => void;
+  onExportPdf: () => void;
   onImportFile: (file: File) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -74,6 +77,10 @@ export function SequenceToolbar({
         <Button variant="outline" onClick={onExport}>
           <DownloadIcon className="h-3.5 w-3.5" />
           Export xlsx
+        </Button>
+        <Button variant="outline" onClick={onExportPdf}>
+          <PdfIcon className="h-3.5 w-3.5" />
+          Export PDF
         </Button>
         <Button variant="outline" onClick={() => fileRef.current?.click()}>
           <UploadIcon className="h-3.5 w-3.5" />

@@ -22,6 +22,7 @@ import {
 } from "@/lib/sequence";
 import { formatDurationShort } from "@/lib/time";
 import { exportSequenceToXlsx, importSequenceFromXlsx } from "@/lib/xlsx";
+import { exportSequenceToPdf } from "@/lib/pdf";
 import type {
   ConfigId,
   ConfigSwitchImpact,
@@ -120,6 +121,7 @@ export function LessonSequenceApp() {
         }
         onPlay={() => setPlayOpen(true)}
         onExport={() => exportSequenceToXlsx(state)}
+        onExportPdf={() => exportSequenceToPdf(state)}
         onImportFile={handleImport}
       />
 
