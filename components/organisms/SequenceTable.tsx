@@ -84,10 +84,10 @@ export function SequenceTable({
                 onMove(dragIndex.current, index);
                 dragIndex.current = null;
               }}
-              className="group border-b border-slate-100 align-top transition-colors hover:bg-slate-50/60"
+              className="group border-b border-slate-100 transition-colors hover:bg-slate-50/60"
             >
-              <td className="sticky left-0 z-10 bg-white px-1 py-1.5 text-center shadow-[1px_0_0_0_rgba(226,232,240,1)] group-hover:bg-slate-50">
-                <div className="flex flex-col items-center gap-0.5 text-slate-400">
+              <td className="sticky left-0 z-10 h-px bg-white px-1 py-1 text-center shadow-[1px_0_0_0_rgba(226,232,240,1)] group-hover:bg-slate-50">
+                <div className="flex h-full flex-col items-center justify-center gap-0.5 text-slate-400">
                   <span className="cursor-grab active:cursor-grabbing" title="Drag to reorder">
                     <GripIcon className="h-3.5 w-3.5" />
                   </span>
@@ -101,26 +101,28 @@ export function SequenceTable({
                   key={col.key}
                   style={{ minWidth: col.minWidth, maxWidth: col.minWidth + 120 }}
                   className={[
-                    "px-1 py-1 align-top",
+                    "h-px px-1 py-1",
                     i === 0
                       ? "sticky left-10 z-10 bg-white shadow-[1px_0_0_0_rgba(226,232,240,1)] group-hover:bg-slate-50"
                       : "",
                   ].join(" ")}
                 >
-                  <SequenceCell
-                    row={row}
-                    column={col}
-                    onChange={(key, value) => onChangeField(row.id, key, value)}
-                    onClearManualStart={
-                      col.key === "startTime"
-                        ? () => onClearManualStart(row.id)
-                        : undefined
-                    }
-                  />
+                  <div className="flex h-full flex-col justify-start">
+                    <SequenceCell
+                      row={row}
+                      column={col}
+                      onChange={(key, value) => onChangeField(row.id, key, value)}
+                      onClearManualStart={
+                        col.key === "startTime"
+                          ? () => onClearManualStart(row.id)
+                          : undefined
+                      }
+                    />
+                  </div>
                 </td>
               ))}
-              <td className="sticky right-0 z-10 bg-white px-1.5 py-1.5 shadow-[-1px_0_0_0_rgba(226,232,240,1)] group-hover:bg-slate-50">
-                <div className="flex items-center justify-end gap-0.5">
+              <td className="sticky right-0 z-10 h-px bg-white px-1.5 py-1 shadow-[-1px_0_0_0_rgba(226,232,240,1)] group-hover:bg-slate-50">
+                <div className="flex h-full items-start justify-end gap-0.5 pt-0.5">
                   <IconButton
                     label="Move up"
                     disabled={index === 0}

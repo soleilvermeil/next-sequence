@@ -23,9 +23,15 @@ export function SequenceCell({
 
   if (column.key === "endTime" || column.kind === "computed") {
     return (
-      <div className="px-1.5 py-1 text-sm tabular-nums text-slate-600">
-        {value ? String(value) : "—"}
-      </div>
+      <Input
+        type="time"
+        compact
+        readOnly
+        tabIndex={-1}
+        value={typeof value === "string" && value ? value : ""}
+        className="tabular-nums text-slate-600 read-only:focus:border-transparent read-only:focus:ring-0"
+        aria-label={column.label}
+      />
     );
   }
 
@@ -88,7 +94,8 @@ export function SequenceCell({
     return (
       <Textarea
         compact
-        maxRows={4}
+        maxRows={8}
+        className="min-h-0 flex-1"
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(column.key, e.target.value)}
         aria-label={column.label}
