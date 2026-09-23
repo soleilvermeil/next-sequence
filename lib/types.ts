@@ -82,16 +82,22 @@ export type PlayModeOption = "sync" | "now";
 export interface PlayState {
   active: boolean;
   mode: PlayModeOption;
-  /** Index of the activity currently emphasized. */
+  /** Index on the user's custom timeline (equals official while synced). */
   currentIndex: number;
-  /** Origin of the live/playback timeline (shifts on manual navigation). */
+  /**
+   * Origin of the user's custom timeline.
+   * Shifts on pause-resume and manual next/previous; reset on sync.
+   */
   timelineOriginMs: number;
   /**
-   * Immutable origin of the base schedule for dual-clock display.
+   * Origin of the official schedule — fixed for the whole play session.
    * Sync mode: first activity wall-clock start (or now if unset).
    * Now mode: moment play began.
    */
   baseOriginMs: number;
-  /** When true, user navigated away from the automatic timeline. */
+  /**
+   * True after pause or next/previous — UI splits into official | custom.
+   * Cleared by "Sync to schedule".
+   */
   offTimeline: boolean;
 }
