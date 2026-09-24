@@ -30,8 +30,17 @@ export interface ActivityRow {
   endTime: string | null;
   /** When true, startTime is user-set and not recomputed from previous row. */
   startTimeManual: boolean;
+  /** AI-authored note on this row; null/empty when none. */
+  aiComment: string | null;
   /** Extensible bag for future configuration fields without schema churn. */
   extras: Record<string, CellValue>;
+}
+
+/** Client-visible chat turns (tool loops stay on the server). */
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
 }
 
 export type ColumnKind = "text" | "textarea" | "number" | "select" | "time" | "computed";

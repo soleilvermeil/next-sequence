@@ -21,6 +21,7 @@ export function createRow(partial?: Partial<ActivityRow>): ActivityRow {
     startTime: null,
     endTime: null,
     startTimeManual: false,
+    aiComment: null,
     extras: {},
     ...partial,
   };
@@ -171,6 +172,31 @@ export function moveRow(
   const next = [...rows];
   const [item] = next.splice(fromIndex, 1);
   next.splice(toIndex, 0, item);
+  return recomputeTimes(next);
+}
+
+export function setRowComment(
+  rows: ActivityRow[],
+  rowId: string,
+  comment: string | null,
+): ActivityRow[] {
+  const text = comment?.trim() ? comment.trim() : null;
+  return rows.map((row) => (row.id === rowId ? { ...row, aiComment: text } : row));
+}
+
+export function clearRowComment(rows: ActivityRow[], rowId: string): ActivityRow[] {
+  return setRowComment(rows, rowId, null);
+}
+
+/** Insert a fully specified row (used by AI tools). */
+export function insertRowWithData(
+  rows: ActivityRow[],
+  index: number,
+  partial?: Partial<ActivityRow>,
+): ActivityRow[] {
+  const clamped = Math.max(0, Math.min(index, rows.length));
+  const next = [...rows];
+  next.splice(clamped, 0, createRow(partial));
   return recomputeTimes(next);
 }
 

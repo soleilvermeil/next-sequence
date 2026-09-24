@@ -11,6 +11,7 @@ import {
   PlayIcon,
   PlusIcon,
   PdfIcon,
+  SparklesIcon,
 } from "@/components/atoms/icons";
 import { listConfigs } from "@/lib/configs";
 import type { ConfigId } from "@/lib/types";
@@ -18,20 +19,26 @@ import type { ConfigId } from "@/lib/types";
 export function SequenceToolbar({
   title,
   configId,
+  titlePending = false,
+  previousTitle,
   onTitleChange,
   onConfigChange,
   onAddRow,
   onPlay,
+  onOpenAi,
   onExport,
   onExportPdf,
   onImportFile,
 }: {
   title: string;
   configId: ConfigId;
+  titlePending?: boolean;
+  previousTitle?: string;
   onTitleChange: (title: string) => void;
   onConfigChange: (id: ConfigId) => void;
   onAddRow: () => void;
   onPlay: () => void;
+  onOpenAi: () => void;
   onExport: () => void;
   onExportPdf: () => void;
   onImportFile: (file: File) => void;
@@ -44,11 +51,21 @@ export function SequenceToolbar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1 space-y-1">
           <Label htmlFor="lesson-title">Lesson title</Label>
+          {titlePending && previousTitle !== undefined && previousTitle !== title && (
+            <p className="text-sm text-red-600 line-through decoration-red-500/80">
+              {previousTitle || "—"}
+            </p>
+          )}
           <Input
             id="lesson-title"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="border-slate-200 bg-white px-3 py-2 text-lg font-semibold tracking-tight text-slate-900"
+            className={[
+              "border-slate-200 bg-white px-3 py-2 text-lg font-semibold tracking-tight",
+              titlePending
+                ? "border-teal-600/40 bg-teal-50/50 text-teal-900"
+                : "text-slate-900",
+            ].join(" ")}
             placeholder="Lesson title"
           />
         </div>
@@ -68,6 +85,10 @@ export function SequenceToolbar({
         <Button variant="primary" onClick={onPlay}>
           <PlayIcon className="h-3.5 w-3.5" />
           Play sequence
+        </Button>
+        <Button variant="outline" onClick={onOpenAi}>
+          <SparklesIcon className="h-3.5 w-3.5" />
+          AI assistant
         </Button>
         <Button variant="outline" onClick={onAddRow}>
           <PlusIcon className="h-3.5 w-3.5" />
