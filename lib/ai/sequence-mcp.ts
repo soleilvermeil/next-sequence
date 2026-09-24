@@ -1,4 +1,4 @@
-import type { ChatCompletionTool } from "openai/resources/chat/completions";
+import type { FunctionTool } from "openai/resources/responses/responses";
 import type { ActivityType, FieldKey, SequenceState } from "@/lib/types";
 import {
   clearManualStart,
@@ -28,171 +28,140 @@ const ACTIVITY_TYPES: ActivityType[] = [
   "",
 ];
 
-/** OpenAI tool definitions — sequence MCP surface for the lesson assistant. */
-export const SEQUENCE_MCP_TOOLS: ChatCompletionTool[] = [
-  {
+function fn(
+  name: string,
+  description: string,
+  parameters: Record<string, unknown>,
+): FunctionTool {
+  return {
     type: "function",
-    function: {
-      name: "get_sequence",
-      description:
-        "Read the full lesson sequence: title, config, and every row with ids and fields.",
-      parameters: { type: "object", properties: {}, additionalProperties: false },
+    name,
+    description,
+    parameters,
+    strict: false,
+  };
+}
+
+/** OpenAI Responses tools — sequence MCP surface for the lesson assistant. */
+export const SEQUENCE_MCP_TOOLS: FunctionTool[] = [
+  fn(
+    "get_sequence",
+    "Read the full lesson sequence: title, config, and every row with ids and fields.",
+    { type: "object", properties: {}, additionalProperties: false },
+  ),
+  fn("set_title", "Update the lesson title.", {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "New lesson title" },
     },
-  },
-  {
-    type: "function",
-    function: {
-      name: "set_title",
-      description: "Update the lesson title.",
-      parameters: {
-        type: "object",
-        properties: {
-          title: { type: "string", description: "New lesson title" },
+    required: ["title"],
+    additionalProperties: false,
+  }),
+  fn(
+    "update_row",
+    "Update one or more fields on a row by id. Omit fields you do not want to change. endTime is computed automatically — do not set it.",
+    {
+      type: "object",
+      properties: {
+        rowId: { type: "string" },
+        activity: { type: "string" },
+        duration: {
+          type: ["number", "null"],
+          description: "Duration in minutes, or null to clear",
         },
-        required: ["title"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "update_row",
-      description:
-        "Update one or more fields on a row by id. Omit fields you do not want to change. endTime is computed automatically — do not set it.",
-      parameters: {
-        type: "object",
-        properties: {
-          rowId: { type: "string" },
-          activity: { type: "string" },
-          duration: {
-            type: ["number", "null"],
-            description: "Duration in minutes, or null to clear",
-          },
-          anticipatedDifficulties: { type: "string" },
-          supportStrategies: { type: "string" },
-          activityType: {
-            type: "string",
-            enum: [
-              "Student work",
-              "Whole-class interaction",
-              "Teacher presentation",
-              "",
-            ],
-          },
-          startTime: {
-            type: ["string", "null"],
-            description: "HH:mm wall-clock start, or null to clear manual start",
-          },
+        anticipatedDifficulties: { type: "string" },
+        supportStrategies: { type: "string" },
+        activityType: {
+          type: "string",
+          enum: [
+            "Student work",
+            "Whole-class interaction",
+            "Teacher presentation",
+            "",
+          ],
         },
-        required: ["rowId"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "insert_row",
-      description:
-        "Insert a new activity row at the given index (0 = first). Optional field values for the new row.",
-      parameters: {
-        type: "object",
-        properties: {
-          index: { type: "integer", minimum: 0 },
-          activity: { type: "string" },
-          duration: { type: ["number", "null"] },
-          anticipatedDifficulties: { type: "string" },
-          supportStrategies: { type: "string" },
-          activityType: {
-            type: "string",
-            enum: [
-              "Student work",
-              "Whole-class interaction",
-              "Teacher presentation",
-              "",
-            ],
-          },
-          startTime: { type: ["string", "null"] },
+        startTime: {
+          type: ["string", "null"],
+          description: "HH:mm wall-clock start, or null to clear manual start",
         },
-        required: ["index"],
-        additionalProperties: false,
       },
+      required: ["rowId"],
+      additionalProperties: false,
     },
-  },
-  {
-    type: "function",
-    function: {
-      name: "delete_row",
-      description: "Delete a row by id. Fails if it would leave the sequence empty.",
-      parameters: {
-        type: "object",
-        properties: { rowId: { type: "string" } },
-        required: ["rowId"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "move_row",
-      description: "Reorder a row from one index to another (0-based).",
-      parameters: {
-        type: "object",
-        properties: {
-          fromIndex: { type: "integer", minimum: 0 },
-          toIndex: { type: "integer", minimum: 0 },
+  ),
+  fn(
+    "insert_row",
+    "Insert a new activity row at the given index (0 = first). Optional field values for the new row.",
+    {
+      type: "object",
+      properties: {
+        index: { type: "integer", minimum: 0 },
+        activity: { type: "string" },
+        duration: { type: ["number", "null"] },
+        anticipatedDifficulties: { type: "string" },
+        supportStrategies: { type: "string" },
+        activityType: {
+          type: "string",
+          enum: [
+            "Student work",
+            "Whole-class interaction",
+            "Teacher presentation",
+            "",
+          ],
         },
-        required: ["fromIndex", "toIndex"],
-        additionalProperties: false,
+        startTime: { type: ["string", "null"] },
       },
+      required: ["index"],
+      additionalProperties: false,
     },
-  },
-  {
-    type: "function",
-    function: {
-      name: "clear_manual_start",
-      description:
-        "Clear a manual start-time override so the row chains from the previous activity again.",
-      parameters: {
-        type: "object",
-        properties: { rowId: { type: "string" } },
-        required: ["rowId"],
-        additionalProperties: false,
-      },
+  ),
+  fn("delete_row", "Delete a row by id. Fails if it would leave the sequence empty.", {
+    type: "object",
+    properties: { rowId: { type: "string" } },
+    required: ["rowId"],
+    additionalProperties: false,
+  }),
+  fn("move_row", "Reorder a row from one index to another (0-based).", {
+    type: "object",
+    properties: {
+      fromIndex: { type: "integer", minimum: 0 },
+      toIndex: { type: "integer", minimum: 0 },
     },
-  },
-  {
-    type: "function",
-    function: {
-      name: "comment_row",
-      description:
-        "Attach or replace an AI comment on a specific row. Use for coaching notes, risks, or questions for the teacher. Keep comments concise.",
-      parameters: {
-        type: "object",
-        properties: {
-          rowId: { type: "string" },
-          comment: { type: "string", description: "Comment text shown to the teacher" },
+    required: ["fromIndex", "toIndex"],
+    additionalProperties: false,
+  }),
+  fn(
+    "clear_manual_start",
+    "Clear a manual start-time override so the row chains from the previous activity again.",
+    {
+      type: "object",
+      properties: { rowId: { type: "string" } },
+      required: ["rowId"],
+      additionalProperties: false,
+    },
+  ),
+  fn(
+    "comment_row",
+    "Attach or replace an AI comment on a specific row. Use for coaching notes, risks, or questions for the teacher. Keep comments concise.",
+    {
+      type: "object",
+      properties: {
+        rowId: { type: "string" },
+        comment: {
+          type: "string",
+          description: "Comment text shown to the teacher",
         },
-        required: ["rowId", "comment"],
-        additionalProperties: false,
       },
+      required: ["rowId", "comment"],
+      additionalProperties: false,
     },
-  },
-  {
-    type: "function",
-    function: {
-      name: "clear_row_comment",
-      description: "Remove the AI comment from a row.",
-      parameters: {
-        type: "object",
-        properties: { rowId: { type: "string" } },
-        required: ["rowId"],
-        additionalProperties: false,
-      },
-    },
-  },
+  ),
+  fn("clear_row_comment", "Remove the AI comment from a row.", {
+    type: "object",
+    properties: { rowId: { type: "string" } },
+    required: ["rowId"],
+    additionalProperties: false,
+  }),
 ];
 
 export type McpToolResult = {

@@ -1,8 +1,6 @@
 import OpenAI from "openai";
-import type {
-  ChatCompletionMessageParam,
-  ChatCompletionToolMessageParam,
-} from "openai/resources/chat/completions";
+import { toResponseInputItems } from "openai/lib/responses/ResponseInputItems";
+import type { ResponseInputItem } from "openai/resources/responses/responses";
 import type { ChatMessage, SequenceState } from "@/lib/types";
 import {
   executeSequenceMcpTool,
@@ -21,13 +19,6 @@ export type ChatResponseBody = {
 };
 
 const MAX_TOOL_ROUNDS = 12;
-
-function toOpenAiMessages(messages: ChatMessage[]): ChatCompletionMessageParam[] {
-  return messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
-}
 
 export async function runSequenceChat(
   body: ChatRequestBody,
@@ -50,78 +41,69 @@ export async function runSequenceChat(
   const model = process.env.OPENAI_MODEL?.trim() || "gpt-6-luna";
 
   let sequence: SequenceState = structuredClone(body.sequence);
-  const openaiMessages: ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    {
-      role: "system",
-      content: `Current sequence snapshot (also available via get_sequence):\n${JSON.stringify(
-        {
-          title: sequence.title,
-          configId: sequence.configId,
-          rows: sequence.rows.map((r, i) => ({
-            index: i,
-            id: r.id,
-            activity: r.activity,
-            duration: r.duration,
-            anticipatedDifficulties: r.anticipatedDifficulties,
-            supportStrategies: r.supportStrategies,
-            activityType: r.activityType,
-            startTime: r.startTime,
-            endTime: r.endTime,
-            startTimeManual: r.startTimeManual,
-            aiComment: r.aiComment,
-          })),
-        },
-        null,
-        2,
-      )}`,
-    },
-    ...toOpenAiMessages(body.messages),
-  ];
+
+  const snapshot = {
+    title: sequence.title,
+    configId: sequence.configId,
+    rows: sequence.rows.map((r, i) => ({
+      index: i,
+      id: r.id,
+      activity: r.activity,
+      duration: r.duration,
+      anticipatedDifficulties: r.anticipatedDifficulties,
+      supportStrategies: r.supportStrategies,
+      activityType: r.activityType,
+      startTime: r.startTime,
+      endTime: r.endTime,
+      startTimeManual: r.startTimeManual,
+      aiComment: r.aiComment,
+    })),
+  };
+
+  const instructions = `${SYSTEM_PROMPT}
+
+Current sequence snapshot (also available via get_sequence):
+${JSON.stringify(snapshot, null, 2)}`;
+
+  const input: ResponseInputItem[] = body.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
   let reply = "";
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const completion = await client.chat.completions.create({
+    const response = await client.responses.create({
       model,
-      messages: openaiMessages,
+      instructions,
+      input,
       tools: SEQUENCE_MCP_TOOLS,
       tool_choice: "auto",
     });
 
-    const choice = completion.choices[0];
-    if (!choice) {
-      throw new ChatUpstreamError("Empty response from OpenAI.");
-    }
+    input.push(...toResponseInputItems(response.output));
 
-    const message = choice.message;
-    openaiMessages.push(message);
+    const functionCalls = response.output.filter(
+      (item) => item.type === "function_call",
+    );
 
-    const toolCalls = message.tool_calls;
-    if (!toolCalls?.length) {
-      reply = (message.content ?? "").trim();
+    if (!functionCalls.length) {
+      reply = (response.output_text ?? "").trim();
       break;
     }
 
-    for (const call of toolCalls) {
-      if (call.type !== "function") continue;
+    for (const call of functionCalls) {
       const { state: next, result } = executeSequenceMcpTool(
         sequence,
-        call.function.name,
-        call.function.arguments,
+        call.name,
+        call.arguments,
       );
       sequence = next;
-      const toolMessage: ChatCompletionToolMessageParam = {
-        role: "tool",
-        tool_call_id: call.id,
-        content: JSON.stringify(result),
-      };
-      openaiMessages.push(toolMessage);
-    }
-
-    if (choice.finish_reason === "stop" && message.content) {
-      reply = message.content.trim();
-      break;
+      input.push({
+        type: "function_call_output",
+        call_id: call.call_id,
+        output: JSON.stringify(result),
+      });
     }
   }
 
