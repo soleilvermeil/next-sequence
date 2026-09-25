@@ -104,9 +104,17 @@ export function exportSequenceToXlsx(state: SequenceState): void {
   XLSX.writeFile(book, `${safeTitle}.xlsx`);
 }
 
+/** Lesson title from an uploaded workbook name (strip path + extension). */
+export function titleFromImportFilename(filename: string): string {
+  const base = filename.split(/[/\\]/).pop() ?? filename;
+  const withoutExt = base.replace(/\.(xlsx|xls)$/i, "").trim();
+  return withoutExt || "Untitled lesson";
+}
+
 export function importSequenceFromXlsx(
   buffer: ArrayBuffer,
   current: SequenceState,
+  filename?: string,
 ): { state: SequenceState; warnings: string[] } {
   const book = XLSX.read(buffer, { type: "array" });
   const sheetName = book.SheetNames[0];
@@ -161,6 +169,7 @@ export function importSequenceFromXlsx(
   return {
     state: {
       ...current,
+      title: filename ? titleFromImportFilename(filename) : current.title,
       configId: inferConfigFromColumns(mapped.map((m) => m.key)),
       rows: importedRows.length > 0 ? importedRows : [createRow()],
     },

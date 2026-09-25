@@ -123,7 +123,11 @@ export function LessonSequenceApp() {
   const handleImport = async (file: File) => {
     try {
       const buffer = await file.arrayBuffer();
-      const { state: next, warnings } = importSequenceFromXlsx(buffer, effective);
+      const { state: next, warnings } = importSequenceFromXlsx(
+        buffer,
+        effective,
+        file.name,
+      );
       setAccepted(next);
       setPending(null);
       const messages = ["Sequence imported."];
