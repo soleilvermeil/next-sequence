@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import type { ActivityRow, ActivityType, FieldKey, SequenceState } from "./types";
 import { COLUMN_REGISTRY, fieldKeyFromExportLabel, getColumn } from "./columns";
-import { getConfig } from "./configs";
+import { getConfig, inferConfigFromColumns } from "./configs";
 import { createRow, getRowFieldValue, recomputeTimes } from "./sequence";
 
 function cellToString(value: unknown): string {
@@ -128,6 +128,7 @@ export function importSequenceFromXlsx(
   return {
     state: {
       ...current,
+      configId: inferConfigFromColumns(mapped.map((m) => m.key)),
       rows: importedRows.length > 0 ? importedRows : [createRow()],
     },
     warnings,

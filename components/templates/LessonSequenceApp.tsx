@@ -126,8 +126,12 @@ export function LessonSequenceApp() {
       const { state: next, warnings } = importSequenceFromXlsx(buffer, effective);
       setAccepted(next);
       setPending(null);
-      if (warnings.length) showToast(warnings.join(" "));
-      else showToast("Sequence imported.");
+      const messages = ["Sequence imported."];
+      if (warnings.length) messages.push(...warnings);
+      if (next.configId !== effective.configId) {
+        messages.push(`Switched to ${getConfig(next.configId).label} view.`);
+      }
+      showToast(messages.join(" "));
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Import failed.");
     }
