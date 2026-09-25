@@ -35,14 +35,18 @@ export function createEmptySequence(configId: ConfigId = "simple"): SequenceStat
   };
 }
 
+/** Midnight anchor when the first row chains from a missing previous end. */
+const SEQUENCE_ORIGIN_TIME = "00:00";
+
 /** Recompute start/end times along the sequence. */
 export function recomputeTimes(rows: ActivityRow[]): ActivityRow[] {
   let previousEnd: string | null = null;
 
-  return rows.map((row) => {
+  return rows.map((row, index) => {
     let startTime = row.startTime;
     if (!row.startTimeManual) {
-      startTime = previousEnd;
+      // First row has nothing to chain from — use midnight as a stable origin.
+      startTime = previousEnd ?? (index === 0 ? SEQUENCE_ORIGIN_TIME : null);
     }
     const endTime = addMinutesToTime(startTime, row.duration);
     previousEnd = endTime ?? previousEnd;
