@@ -3,6 +3,7 @@ import type { ActivityRow, ActivityType, FieldKey, SequenceState } from "./types
 import { COLUMN_REGISTRY, fieldKeyFromExportLabel, getColumn } from "./columns";
 import { getConfig, inferConfigFromColumns } from "./configs";
 import { createRow, getRowFieldValue, recomputeTimes } from "./sequence";
+import { addMinutesToTime, formatMinutesAsTime, parseTimeToMinutes } from "./time";
 
 function cellToString(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -14,6 +15,36 @@ function parseDuration(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   const n = Number(String(value).replace(/,/g, ".").replace(/[^\d.-]/g, ""));
   return Number.isFinite(n) ? n : null;
+}
+
+function parseImportedTime(value: unknown): string | null {
+  const s = cellToString(value);
+  if (!s) return null;
+  const mins = parseTimeToMinutes(s);
+  return mins !== null ? formatMinutesAsTime(mins) : s;
+}
+
+function timesEqual(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false;
+  const am = parseTimeToMinutes(a);
+  const bm = parseTimeToMinutes(b);
+  if (am !== null && bm !== null) return am === bm;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/** Starts that match the previous end are chained (use time from previous activity). */
+function markChainedStartTimes(rows: ActivityRow[]): ActivityRow[] {
+  let previousEnd: string | null = null;
+  return rows.map((row) => {
+    const chained =
+      Boolean(row.startTime) &&
+      Boolean(previousEnd) &&
+      timesEqual(row.startTime, previousEnd);
+    const next = chained ? { ...row, startTimeManual: false } : row;
+    previousEnd =
+      row.endTime || addMinutesToTime(row.startTime, row.duration) || previousEnd;
+    return next;
+  });
 }
 
 function parseActivityType(value: unknown): ActivityType {
@@ -39,12 +70,12 @@ function applyImportValue(row: ActivityRow, key: FieldKey, raw: unknown): Activi
     case "activityType":
       return { ...row, activityType: parseActivityType(raw) };
     case "startTime": {
-      const startTime = cellToString(raw) || null;
+      const startTime = parseImportedTime(raw);
       return { ...row, startTime, startTimeManual: Boolean(startTime) };
     }
     case "endTime":
-      // End time is recomputed; ignore import value except as hint if start missing.
-      return row;
+      // Stored only to detect chained starts; recomputed after import.
+      return { ...row, endTime: parseImportedTime(raw) };
     default:
       return row;
   }
@@ -116,13 +147,15 @@ export function importSequenceFromXlsx(
   }
 
   const importedRows = recomputeTimes(
-    rows.map((raw) => {
-      let row = createRow();
-      for (const { header, key } of mapped) {
-        row = applyImportValue(row, key, raw[header]);
-      }
-      return row;
-    }),
+    markChainedStartTimes(
+      rows.map((raw) => {
+        let row = createRow();
+        for (const { header, key } of mapped) {
+          row = applyImportValue(row, key, raw[header]);
+        }
+        return row;
+      }),
+    ),
   );
 
   return {
